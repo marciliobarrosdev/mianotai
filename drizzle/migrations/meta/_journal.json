@@ -183,6 +183,13 @@
       "when": 1795472978261,
       "tag": "0025_finance_always_enabled",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795473016924,
+      "tag": "0026_finance_enabled_any_plan",
+      "breakpoints": true
     }
   ]
 }
