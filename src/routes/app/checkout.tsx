@@ -558,7 +558,12 @@ function CheckoutPage() {
                       </p>
                     )}
                     <Button
-                      onClick={() => void iniciarTrial()}
+                      onClick={() => {
+                        // Plano pago sempre passa pela InfinitePay; só o Gratuito inicia teste.
+                        if (plano && plano.preco_cents > 0) {
+                          void (ctx.company ? pagarAgora() : assinarPago(plano));
+                        } else void iniciarTrial();
+                      }}
                       disabled={!plano || creating}
                       size="lg"
                       className="w-full md:w-auto min-w-[280px] bg-gradient-brand text-primary-foreground hover:opacity-90 font-semibold"
