@@ -37,9 +37,10 @@ export const createInfinitePayCheckout = createServerFn({ method: "POST" })
 
     // Link fixo do plano (Master) ou reserva Link 1/Link 2.
     const { checkoutLinkForPlan } = await import("@/lib/billing/infinitepay-rules");
+    // Link gerado (com pedido + webhook) identifica a conta com certeza;
+    // o link fixo do plano é só reserva quando a geração falha.
     const fixed = checkoutLinkForPlan(plan, ip);
-    if (fixed) return { url: fixed };
-    if (!ip.handle) return { url: null };
+    if (!ip.handle) return { url: fixed };
 
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(context.userId);
     const base = origin();
@@ -64,6 +65,7 @@ export const createInfinitePayCheckout = createServerFn({ method: "POST" })
     const json: any = await res.json().catch(() => ({}));
     if (!res.ok || !json?.url) {
       console.error("[infinitepay.link]", res.status, JSON.stringify(json).slice(0, 300));
+      if (fixed) return { url: fixed };
       throw new Error("Não foi possível abrir o pagamento. Tente novamente.");
     }
     return { url: String(json.url) };

@@ -190,6 +190,13 @@
       "when": 1795473016924,
       "tag": "0026_finance_enabled_any_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795481198015,
+      "tag": "0027_update_infinitepay_plan_links",
+      "breakpoints": true
     }
   ]
 }

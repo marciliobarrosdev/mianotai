@@ -223,8 +223,30 @@ function CheckoutPage() {
       return;
     }
 
-    void iniciarTrial(chosenPlan);
+    // Plano pago: cria a conta aguardando pagamento e abre a InfinitePay.
+    if (chosenPlan.preco_cents > 0) void assinarPago(chosenPlan);
+    else void iniciarTrial(chosenPlan);
   }, [ctx.company, plans, search.plano]);
+
+  async function assinarPago(chosenPlan: Plano) {
+    setCreating(true);
+    setAutomaticStartError(null);
+    try {
+      const { companyId } = await createCompany({
+        data: { nome: defaultCompanyName(ctx.user.email), plano_slug: chosenPlan.slug },
+      });
+      const { url } = await startInfinite({ data: { planSlug: chosenPlan.slug, companyId } });
+      const target =
+        url || (chosenPlan.checkout_url ? buildCheckoutUrl(chosenPlan.checkout_url, ctx.user.email, companyId) : null);
+      if (!target) throw new Error("Pagamento indisponível no momento. Avise o suporte.");
+      window.location.assign(target);
+    } catch (e: any) {
+      const message = e?.message || "Não foi possível abrir o pagamento.";
+      setAutomaticStartError(message);
+      toast.error(message);
+      setCreating(false);
+    }
+  }
 
   async function pagarAgora() {
     if (!plano) return toast.error("Selecione um plano.");
@@ -295,18 +317,22 @@ function CheckoutPage() {
           <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">
             {automaticStartError
               ? "Não conseguimos ativar automaticamente"
-              : `Ativando seu ${directPlan?.nome || "plano"}…`}
+              : directPlan && directPlan.preco_cents > 0
+                ? `Abrindo o pagamento do ${directPlan.nome}…`
+                : `Ativando seu ${directPlan?.nome || "plano"}…`}
           </h1>
           <p className="mt-3 text-sm md:text-base text-muted-foreground leading-relaxed">
             {automaticStartError
               ? automaticStartError
-              : `Estamos liberando seu período de teste e os créditos de IA. Em seguida, você entra direto na configuração da sua empresa.`}
+              : directPlan && directPlan.preco_cents > 0
+                ? "Você será levado à InfinitePay. Assim que o pagamento for aprovado, seu acesso é liberado automaticamente."
+                : `Estamos liberando seu período de teste e os créditos de IA. Em seguida, você entra direto na configuração da sua empresa.`}
           </p>
 
           {directPlan && !automaticStartError && (
             <div className="mt-6 rounded-xl border bg-muted/40 px-4 py-3 text-sm">
               <b>{directPlan.nome}</b> · {formatBRL(directPlan.preco_cents)}/mês ·{" "}
-              {directPlan.trial_days} dias grátis · sem cartão
+              {directPlan.preco_cents > 0 ? "pagamento via InfinitePay" : `${directPlan.trial_days} dias grátis · sem cartão`}
             </div>
           )}
 
@@ -317,7 +343,8 @@ function CheckoutPage() {
                 disabled={!directPlan || creating}
                 onClick={() => {
                   if (!directPlan) return;
-                  void iniciarTrial(directPlan);
+                  if (directPlan.preco_cents > 0) void assinarPago(directPlan);
+                  else void iniciarTrial(directPlan);
                 }}
               >
                 {creating && <Loader2 className="mr-2 size-4 animate-spin" />}
